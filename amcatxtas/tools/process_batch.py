@@ -97,21 +97,41 @@ class NLPRunner(object):
         body = {"filter" : self.get_filter(setid)}
         result = self.es.search(index=ES_INDEX, doc_type=ES_ARTICLE_DOCTYPE, body=body, size=0)
         todo = result['hits']['total']
+        print body
         body = {"filter" : {"term" : {"sets" : setid}}}
         result = self.es.search(index=ES_INDEX, doc_type=ES_ARTICLE_DOCTYPE, body=body, size=0)
         total = result['hits']['total']
         return todo, total
             
+def import_attribute(module, attribute=None):
+    """
+    Import and return the attribute from the module
+    If attribute is None, assume module is of form mo.du.le.attribute
+    """
+    if attribute is None:
+        if "." in module:
+            module, attribute = module.rsplit(".", 1)
+        else:
+            return __import__(module)
+    mod = __import__(module, fromlist=[str(attribute)])
+    try:
+        return getattr(mod, attribute)
+    except AttributeError:
+        raise ImportError("Module %r has no attribute %r" % (module, attribute))
 
+    
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--progress', action='store_const', const=True)
     parser.add_argument('plugin')
+    parser.add_argument('articleset', type=int)
     args = parser.parse_args()
-    print args
+
+    plugin = import_attribute(args.plugin)
     
-    #from amcat.nlp import alpino
-    #n = NLPRunner(alpino.AlpinoPlugin)
-    #print n.progress(int(sys.argv[1]))
-    #n.process_articles(2)
+    n = NLPRunner(plugin)
+    if args.progress:
+        print n.progress(args.articleset)
+    else:    
+        n.process_articles(args.articleset)

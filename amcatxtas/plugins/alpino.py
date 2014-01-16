@@ -1,5 +1,5 @@
 import threading, subprocess, logging
-from amcat.nlp import naf
+from ..tools import naf
 log = logging.getLogger(__name__)
 
 ALPINO_HOME="/home/wva/Alpino"
@@ -22,8 +22,8 @@ class AlpinoPlugin(object):
                 d.update(d.pop('extra'))
             return dict(d.iteritems())
             
-        return {s : map(todict, getattr(naf, s)
-                        for s in ["words", "terms", "dependencies"]}
+        return {s : map(todict, getattr(naf, s))
+                for s in ["words", "terms", "dependencies"]}
         
 
 def tokenize(text):
