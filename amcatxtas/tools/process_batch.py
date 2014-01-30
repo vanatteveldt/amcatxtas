@@ -89,8 +89,15 @@ class NLPRunner(object):
 
     def process_articles(self, setid, size=1):
         """Process one or more random uncached articles from the given set"""
+        articles = list(self.get_articles(setid, size=size))
+        if not articles:
+            return True # done!
+            
         for a in self.get_articles(setid, size=size):
-            self.process_article(a)
+            try:
+                self.process_article(a)
+            except:
+                log.exception("Exception on processing article {aid}".format(aid=a.get("_id")))
 
     def progress(self, setid):
         """Return a todo, total pair to indicate how many articles exist without result / in total"""
@@ -121,9 +128,13 @@ def import_attribute(module, attribute=None):
 
     
 if __name__ == '__main__':
+    logging.basicConfig(format='[%(asctime)s %(levelname)s %(name)s:%(lineno)s] %(message)s', level=logging.INFO)
+    
     import argparse
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--progress', action='store_const', const=True)
+    parser.add_argument('--number', '-n', default=1, type=int)
+    parser.add_argument('--size', '-s', default=1, type=int)
     parser.add_argument('plugin')
     parser.add_argument('articleset', type=int)
     args = parser.parse_args()
@@ -132,6 +143,12 @@ if __name__ == '__main__':
     
     n = NLPRunner(plugin)
     if args.progress:
-        print n.progress(args.articleset)
-    else:    
-        n.process_articles(args.articleset)
+        todo, total = n.progress(args.articleset)
+        print "Todo: {todo} out of {total} articles in set {args.articleset} for plugin {args.plugin}".format(**locals())
+    else:
+        for i in range(args.number):
+            log.info("Processing batch {i} / {args.number}".format(**locals()))
+            done = n.process_articles(args.articleset, size=args.size)
+            if done:
+                log.info("Done")
+                break
